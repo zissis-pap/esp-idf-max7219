@@ -173,6 +173,8 @@ esp_err_t max7219_draw_image_8x8(max7219_t *dev, uint8_t pos, const void *image)
 
 esp_err_t max7219_print_static_text(max7219_t *dev, const char * text);
 
+esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay);
+
 
 #ifdef __cplusplus
 }

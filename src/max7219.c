@@ -270,35 +270,29 @@ esp_err_t max7219_process_text(const char * text, uint8_t byte_array[8][DATA_ARR
 
     uint8_t text_len = strlen(text);
 
-    // Iterate through each bit-plane
-    for (int bit = 0; bit < BIT_COUNT; bit++) 
+    for (int bit = 0; bit < BIT_COUNT; bit++) // Iterate through each bit-plane
     {
         byte_array[bit][0] = BIT_COUNT - bit; // Initialize matrix header for each bit
 
         int matrix = 0;
         int col_index = 0;
 
-        // Process each character in the input text
-        for (size_t i = 0; i < text_len; i++) 
+        for (size_t i = 0; i < text_len; i++) // Process each character in the input text
         {
             char ch = text[i];
             if (ch < 32 || ch > 127) continue; // Skip invalid characters
 
-            // Get the bitmap for the character
-            const uint8_t *bitmap = font_5x7[ch - 32];
+            const uint8_t *bitmap = font_5x7[ch - 32]; // Get the bitmap for the character
 
-            // Process each column in the character's bitmap
-            for (int font_col = 0; font_col < FONT_WIDTH; font_col++) 
+            for (int font_col = 0; font_col < FONT_WIDTH; font_col++) // Process each column in the character's bitmap
             {
-                // Break if cascade size exceeded
-                if (matrix >= MAX7219_CASCADE_SIZE) break;
+                if (matrix >= MAX7219_CASCADE_SIZE) break; // Break if cascade size exceeded
 
-                if (bitmap[font_col] & (1 << bit)) {
+                if (bitmap[font_col] & (1 << bit)) 
+                {
                     byte_array[bit][matrix + 1] |= (1 << col_index);
                 }
-
-                // Advance column index and handle overflow to next matrix
-                col_index++;
+                col_index++; // Advance column index and handle overflow to next matrix
                 if (col_index >= MAX7219_MATRIX_WIDTH) 
                 {
                     col_index = 0;
@@ -306,8 +300,7 @@ esp_err_t max7219_process_text(const char * text, uint8_t byte_array[8][DATA_ARR
                 }
             }
 
-            // Add spacing between characters
-            col_index++;
+            col_index++; // Add spacing between characters (to be removed)
             if (col_index >= MAX7219_MATRIX_WIDTH) 
             {
                 col_index = 0;
@@ -321,6 +314,7 @@ esp_err_t max7219_process_text(const char * text, uint8_t byte_array[8][DATA_ARR
 esp_err_t max7219_print_static_text(max7219_t *dev, const char * text)
 {
     CHECK_ARG(dev && text);
+    if (!text) return ESP_ERR_INVALID_ARG; // Null pointer guard
     uint8_t byte_array[8][DATA_ARRAY_LIMIT] = {0};
     max7219_process_text(text, byte_array);
 
@@ -331,5 +325,76 @@ esp_err_t max7219_print_static_text(max7219_t *dev, const char * text)
             send(dev, MAX7219_CASCADE_SIZE - matrix, (byte_array[i][0]) << 8 | byte_array[i][matrix]);
         }
     }
+    return ESP_OK;
+}
+
+esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
+{
+    CHECK_ARG(dev && text);
+    if (!text) return ESP_ERR_INVALID_ARG; // Null pointer guard
+    uint16_t text_len = strlen(text);
+    uint8_t byte_array[8][256]= {0};
+
+    for (int bit = 0; bit < BIT_COUNT; bit++) // Iterate through each bit-plane
+    {
+        int matrix = 0;
+        int col_index = 0;
+
+        for (size_t i = 0; i < text_len; i++) // Process each character in the input text
+        {
+            char ch = text[i];
+            if (ch < 32 || ch > 127) continue; // Skip invalid characters
+
+            const uint8_t *bitmap = font_5x7[ch - 32]; // Get the bitmap for the character
+
+            for (int font_col = 0; font_col < FONT_WIDTH; font_col++) // Process each column in the character's bitmap
+            {
+                if (matrix >= MAX7219_CASCADE_SIZE) break; // Break if cascade size exceeded
+
+                if (bitmap[font_col] & (1 << bit)) 
+                {
+                    byte_array[bit][matrix] |= (1 << col_index);
+                }
+                col_index++; // Advance column index and handle overflow to next matrix
+                if (col_index >= MAX7219_MATRIX_WIDTH) 
+                {
+                    col_index = 0;
+                    matrix++;
+                }
+            }
+
+            col_index++; // Add spacing between characters (to be removed)
+            if (col_index >= MAX7219_MATRIX_WIDTH) 
+            {
+                col_index = 0;
+                matrix++;
+            }
+        }
+    }
+    while(1)
+    {
+        for (int i = 0; i < 8; i++) 
+        {
+            unsigned int carry = 0; // Holds the carry bit for each row
+            for (int j = 256 - 1; j >= 0; j--) 
+            {
+                unsigned int nextCarry = byte_array[i][j] & 1; // Store the least significant bit
+                byte_array[i][j] = (byte_array[i][j] >> 1) | (carry << 7); // Shift right and include carry
+                carry = nextCarry; // Update carry
+            }
+        }
+
+        for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) 
+        {
+            for (uint8_t i = 0; i < 7; i++) 
+            {
+
+                send(dev, MAX7219_CASCADE_SIZE - matrix -1, (8-i) << 8 | byte_array[i][matrix]);
+  
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
     return ESP_OK;
 }
