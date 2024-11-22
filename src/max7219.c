@@ -272,8 +272,6 @@ esp_err_t max7219_process_text(const char * text, uint8_t byte_array[8][DATA_ARR
 
     for (int bit = 0; bit < BIT_COUNT; bit++) // Iterate through each bit-plane
     {
-        byte_array[bit][0] = BIT_COUNT - bit; // Initialize matrix header for each bit
-
         int matrix = 0;
         int col_index = 0;
 
@@ -284,13 +282,13 @@ esp_err_t max7219_process_text(const char * text, uint8_t byte_array[8][DATA_ARR
 
             const uint8_t *bitmap = font_5x7[ch - 32]; // Get the bitmap for the character
 
-            for (int font_col = 0; font_col < FONT_WIDTH; font_col++) // Process each column in the character's bitmap
+            for (int font_col = 0; font_col < bitmap[0]; font_col++) // Process each column in the character's bitmap
             {
                 if (matrix >= MAX7219_CASCADE_SIZE) break; // Break if cascade size exceeded
 
-                if (bitmap[font_col] & (1 << bit)) 
+                if (bitmap[font_col+1] & (1 << bit)) 
                 {
-                    byte_array[bit][matrix + 1] |= (1 << col_index);
+                    byte_array[bit][matrix] |= (1 << col_index);
                 }
                 col_index++; // Advance column index and handle overflow to next matrix
                 if (col_index >= MAX7219_MATRIX_WIDTH) 
@@ -318,11 +316,11 @@ esp_err_t max7219_print_static_text(max7219_t *dev, const char * text)
     uint8_t byte_array[8][DATA_ARRAY_LIMIT] = {0};
     max7219_process_text(text, byte_array);
 
-    for (int matrix = 1; matrix <= MAX7219_CASCADE_SIZE; matrix++) 
+    for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) 
     {
         for (uint8_t i = 0; i < 7; i++) 
         {
-            send(dev, MAX7219_CASCADE_SIZE - matrix, (byte_array[i][0]) << 8 | byte_array[i][matrix]);
+            send(dev, MAX7219_CASCADE_SIZE - matrix - 1, (8-i) << 8 | byte_array[i][matrix]);
         }
     }
     return ESP_OK;
