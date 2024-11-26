@@ -342,17 +342,16 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
         }
     }
 
-	for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
-	{
-		for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++)
-		{
-			uint16_t data = ((MAX7219_MATRIX_WIDTH - row) << 8) | byte_array[MAX7219_MATRIX_WIDTH * matrix + row];
-            send(dev, MAX7219_CASCADE_SIZE - matrix - 1, data);
-        }
-    }
-
     for (uint16_t bit = 0; bit < scroll_width; bit++) // Scrolling loop
     {
+		for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
+		{
+			for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++)
+			{
+				uint16_t data = ((MAX7219_MATRIX_WIDTH - row) << 8) | byte_array[MAX7219_MATRIX_WIDTH * matrix + row];
+            	send(dev, MAX7219_CASCADE_SIZE - matrix - 1, data);
+        	}
+    	}
         // Shift bits in `byte_array`
         for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
         {
