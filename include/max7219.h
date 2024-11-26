@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Ruslan V. Uss <unclerus@gmail.com>
+ * Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -32,10 +32,11 @@
  *
  * ESP-IDF driver for MAX7219/MAX7221
  * Serially Interfaced, 8-Digit LED Display Drivers
+ * Serially Interfaced, 8x8-Dot LED Matrix Drivers
  *
- * Ported from esp-open-rtos
- *
- * Copyright (c) 2017 Ruslan V. Uss <unclerus@gmail.com>
+ * Forked form Ruslan V. Uss <unclerus@gmail.com> esp-idf-lib max7219 driver 
+ * 
+ * Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
  *
  * BSD Licensed as described in the file LICENSE
  */

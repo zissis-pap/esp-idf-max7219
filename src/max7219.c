@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Ruslan V. Uss <unclerus@gmail.com>
+ * Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,10 +30,11 @@
  *
  * ESP-IDF driver for MAX7219/MAX7221
  * Serially Interfaced, 8-Digit LED Display Drivers
+ * Serially Interfaced, 8x8-Dot LED Matrix Drivers
  *
- * Ported from esp-open-rtos
- *
- * Copyright (c) 2017 Ruslan V. Uss <unclerus@gmail.com>
+ * Forked form Ruslan V. Uss <unclerus@gmail.com> esp-idf-lib max7219 driver 
+ * 
+ * Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
  *
  * BSD Licensed as described in the file LICENSE
  */
@@ -310,6 +311,7 @@ esp_err_t max7219_print_static_text(max7219_t *dev, const char * text)
     if (!text) return ESP_ERR_INVALID_ARG; // Null pointer guard
     uint16_t text_len = strlen(text);
     uint8_t *byte_array = (uint8_t*)calloc(8*text_len, sizeof(uint8_t));
+    if (!byte_array) return ESP_ERR_NO_MEM;
     max7219_process_text(text, byte_array);
 
     for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) 
@@ -329,43 +331,42 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
     if (!text) return ESP_ERR_INVALID_ARG; // Null pointer guard
     uint16_t text_len = strlen(text);
     uint8_t *byte_array = (uint8_t*)calloc(8*text_len, sizeof(uint8_t));
+    if (!byte_array) return ESP_ERR_NO_MEM;
     max7219_process_text(text, byte_array);
-    uint16_t counter = 0, bit = 0;
-    for(uint8_t i = 0; i < text_len; i++)
+    uint16_t scroll_width = 0;
+    for (uint16_t i = 0; i < text_len; i++) 
     {
         char ch = text[i];
-        if (ch < 32 || ch > 127) continue; // Skip invalid characters
-        
-        const uint8_t *bitmap = font_5x7[ch - 32]; // Get the bitmap for the character
-        counter += bitmap[0] + 1;
+        if (ch >= 32 && ch <= 127) {
+            scroll_width += font_5x7[ch - 32][0] + 1; // Character width + spacing
+        }
     }
-    while(bit < counter)
+
+    for (uint16_t bit = 0; bit < scroll_width; bit++) // Scrolling loop
     {
+        // Shift bits in `byte_array`
         for (uint8_t row = 0; row < BIT_COUNT; row++) 
         {
-            uint8_t carry = 0; // Holds the bit to carry to the next byte
-            for (int col = text_len-2; col >= 0; col--) 
+            uint8_t carry = 0;
+            for (int col = text_len - 1; col >= 0; col--) 
             {
-                int index = row+(col*BIT_COUNT); // Compute the index in the 1D array
-                uint8_t next_carry = byte_array[index] & 1; // Get the least significant bit
-                byte_array[index] = (byte_array[index] >> 1) | (carry << 7); // Shift right and add carry
-                carry = next_carry; // Update carry for the next byte
+                int index = row + (col * BIT_COUNT);
+                uint8_t next_carry = byte_array[index] & 1; // Extract LSB
+                byte_array[index] = (byte_array[index] >> 1) | (carry << 7); // Shift right, add carry
+                carry = next_carry;
             }
         }
-
-        for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) 
+        
+        for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
         {
-            for (uint8_t i = 0; i < 7; i++) 
+            for (uint8_t row = 0; row < 8; row++) 
             {
-
-                send(dev, MAX7219_CASCADE_SIZE - matrix -1, (8-i) << 8 | byte_array[8*matrix + i]);
-  
+                uint8_t data = byte_array[8 * matrix + row];
+                send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((8 - row) << 8) | data);
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(delay));
-        bit++;
+        vTaskDelay(pdMS_TO_TICKS(delay)); // Delay for the next frame
     }
-    printf("DONE!\n");
     free(byte_array);   
     return ESP_OK;
 }
