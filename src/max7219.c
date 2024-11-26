@@ -268,7 +268,7 @@ esp_err_t max7219_process_text(const char * text, uint8_t *byte_array)
 {
     uint8_t text_len = strlen(text);
 
-    for (int bit = 0; bit < BIT_COUNT; bit++) // Iterate through each bit-plane
+    for (int bit = 0; bit < MAX7219_MATRIX_WIDTH; bit++) // Iterate through each bit-plane
     {
         int matrix = 0;
         int col_index = 0;
@@ -345,12 +345,12 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
     for (uint16_t bit = 0; bit < scroll_width; bit++) // Scrolling loop
     {
         // Shift bits in `byte_array`
-        for (uint8_t row = 0; row < BIT_COUNT; row++) 
+        for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
         {
             uint8_t carry = 0;
             for (int col = text_len - 1; col >= 0; col--) 
             {
-                int index = row + (col * BIT_COUNT);
+                int index = row + (col * MAX7219_MATRIX_WIDTH);
                 uint8_t next_carry = byte_array[index] & 1; // Extract LSB
                 byte_array[index] = (byte_array[index] >> 1) | (carry << 7); // Shift right, add carry
                 carry = next_carry;
@@ -359,10 +359,10 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
         
         for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
         {
-            for (uint8_t row = 0; row < 8; row++) 
+            for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
             {
-                uint8_t data = byte_array[8 * matrix + row];
-                send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((8 - row) << 8) | data);
+                uint16_t data = ((MAX7219_MATRIX_WIDTH - row) << 8) | byte_array[MAX7219_MATRIX_WIDTH * matrix + row];
+                send(dev, MAX7219_CASCADE_SIZE - matrix - 1, data);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(delay)); // Delay for the next frame
