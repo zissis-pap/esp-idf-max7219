@@ -342,6 +342,15 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
         }
     }
 
+	for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
+	{
+		for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++)
+		{
+			uint16_t data = ((MAX7219_MATRIX_WIDTH - row) << 8) | byte_array[MAX7219_MATRIX_WIDTH * matrix + row];
+            send(dev, MAX7219_CASCADE_SIZE - matrix - 1, data);
+        }
+    }
+
     for (uint16_t bit = 0; bit < scroll_width; bit++) // Scrolling loop
     {
         // Shift bits in `byte_array`
@@ -356,16 +365,8 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
                 carry = next_carry;
             }
         }
-        
-        for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
-        {
-            for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
-            {
-                uint16_t data = ((MAX7219_MATRIX_WIDTH - row) << 8) | byte_array[MAX7219_MATRIX_WIDTH * matrix + row];
-                send(dev, MAX7219_CASCADE_SIZE - matrix - 1, data);
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(delay)); // Delay for the next frame
+        if(bit == 0) vTaskDelay(pdMS_TO_TICKS(1500)); // Delay for the next frame
+		else vTaskDelay(pdMS_TO_TICKS(delay));
     }
     free(byte_array);   
     return ESP_OK;
