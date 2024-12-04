@@ -381,10 +381,12 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char *text, uint16_t delay_m
                 carry = next_carry;
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(delay_ms)); // Apply scrolling delay.
+        if(bit == 0) vTaskDelay(pdMS_TO_TICKS(1500)); // Delay for the next frame
+		else vTaskDelay(pdMS_TO_TICKS(delay_ms)); // Apply scrolling delay.
     }
 
     free(processed_text); // Free allocated memory.
     return ESP_OK;
 }
+
 
