@@ -305,68 +305,86 @@ esp_err_t max7219_process_text(const char * text, uint8_t *byte_array)
     return ESP_OK;
 }
 
-esp_err_t max7219_print_static_text(max7219_t *dev, const char * text)
+esp_err_t max7219_print_static_text(max7219_t *dev, const char *text)
 {
-    CHECK_ARG(dev && text);
-    if (!text) return ESP_ERR_INVALID_ARG; // Null pointer guard
+    CHECK_ARG(dev && text); // Ensure device and text pointers are valid.
+    max7219_clear(dev);
     uint16_t text_len = strlen(text);
-    uint8_t *byte_array = (uint8_t*)calloc(8*text_len, sizeof(uint8_t));
-    if (!byte_array) return ESP_ERR_NO_MEM;
-    max7219_process_text(text, byte_array);
+    if (text_len > MAX7219_CASCADE_SIZE) 
+        text_len = MAX7219_CASCADE_SIZE; // Limit text length to the cascade size.
 
-    for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) 
+    uint8_t *processed_text = (uint8_t *)calloc(8 * text_len, sizeof(uint8_t)); // Allocate memory for processed text
+    if (!processed_text)
+        return ESP_ERR_NO_MEM; // Memory allocation failed.
+
+    max7219_process_text(text, processed_text);       // Convert text into a format suitable for MAX7219
+
+    for (int matrix = 0; matrix < text_len; matrix++) // Send processed data to the MAX7219 device
     {
-        for (uint8_t i = 0; i < 7; i++) 
+        for (uint8_t row = 0; row < 8; row++) // MAX7219 has 8 rows
         {
-            send(dev, MAX7219_CASCADE_SIZE - matrix - 1, (8-i) << 8 | byte_array[8*matrix + i]);
+            uint8_t data = processed_text[8 * matrix + row];
+            send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((8 - row) << 8) | data);
         }
     }
-    free(byte_array);
+
+    free(processed_text); // Free allocated memory
     return ESP_OK;
 }
 
-esp_err_t max7219_scroll_text(max7219_t *dev, const char * text, uint16_t delay)
+
+esp_err_t max7219_scroll_text(max7219_t *dev, const char *text, uint16_t delay_ms)
 {
-    CHECK_ARG(dev && text);
-    if (!text) return ESP_ERR_INVALID_ARG; // Null pointer guard
+    CHECK_ARG(dev && text); // Validate input arguments.
+
     uint16_t text_len = strlen(text);
-    uint8_t *byte_array = (uint8_t*)calloc(8*text_len, sizeof(uint8_t));
-    if (!byte_array) return ESP_ERR_NO_MEM;
-    max7219_process_text(text, byte_array);
-    uint16_t scroll_width = 0;
+    if (text_len == 0) return ESP_OK; // No text to scroll.
+
+    uint8_t *processed_text = (uint8_t *)calloc(8 * text_len, sizeof(uint8_t)); // Allocate memory for processed text representation.
+    if (!processed_text) return ESP_ERR_NO_MEM; // Memory allocation failed.
+
+    max7219_clear(dev); // Clear all matrices before scrolling.
+    max7219_process_text(text, processed_text); // Convert the text into a format compatible with the MAX7219.
+
+    // Calculate the total scrolling width based on character widths and spacing.
+    uint16_t total_scroll_width = 0;
     for (uint16_t i = 0; i < text_len; i++) 
     {
         char ch = text[i];
-        if (ch >= 32 && ch <= 127) {
-            scroll_width += font_5x7[ch - 32][0] + 1; // Character width + spacing
+        if (ch >= 32 && ch <= 127) // Ensure character is within valid range.
+        {
+            total_scroll_width += font_5x7[ch - 32][0] + 1; // Character width + spacing.
         }
     }
 
-    for (uint16_t bit = 0; bit < scroll_width; bit++) // Scrolling loop
+    uint16_t display_matrices = (text_len > MAX7219_CASCADE_SIZE) ? MAX7219_CASCADE_SIZE : text_len;
+    for (uint16_t bit = 0; bit < total_scroll_width; bit++) // Scroll text bit-by-bit across the display.
     {
-		for (int matrix = 0; matrix < MAX7219_CASCADE_SIZE; matrix++) // Send data to MAX7219 matrices
-		{
-			for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++)
-			{
-				uint16_t data = ((MAX7219_MATRIX_WIDTH - row) << 8) | byte_array[MAX7219_MATRIX_WIDTH * matrix + row];
-            	send(dev, MAX7219_CASCADE_SIZE - matrix - 1, data);
-        	}
-    	}
-        // Shift bits in `byte_array`
-        for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
+        for (int matrix = 0; matrix < display_matrices; matrix++) // Send the processed data to the MAX7219 matrices.
+        {
+            for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
+            {
+                uint16_t index = row + (matrix * MAX7219_MATRIX_WIDTH);
+                uint8_t data = (index < 8 * text_len) ? processed_text[index] : 0; // Bounds-safe access.
+                send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((MAX7219_MATRIX_WIDTH - row) << 8) | data);
+            }
+        }
+
+        for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++)  // Shift bits in `processed_text` for scrolling effect.
         {
             uint8_t carry = 0;
             for (int col = text_len - 1; col >= 0; col--) 
             {
                 int index = row + (col * MAX7219_MATRIX_WIDTH);
-                uint8_t next_carry = byte_array[index] & 1; // Extract LSB
-                byte_array[index] = (byte_array[index] >> 1) | (carry << 7); // Shift right, add carry
+                uint8_t next_carry = (processed_text[index] & 1); // Extract least significant bit.
+                processed_text[index] = (processed_text[index] >> 1) | (carry << 7); // Shift and add carry.
                 carry = next_carry;
             }
         }
-        if(bit == 0) vTaskDelay(pdMS_TO_TICKS(1500)); // Delay for the next frame
-		else vTaskDelay(pdMS_TO_TICKS(delay));
+        vTaskDelay(pdMS_TO_TICKS(delay_ms)); // Apply scrolling delay.
     }
-    free(byte_array);   
+
+    free(processed_text); // Free allocated memory.
     return ESP_OK;
 }
+
