@@ -9,7 +9,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of itscontributors
+ * 3. Neither the name of the copyright holder nor the names of its contributors
  *    may be used to endorse or promote products derived from this software without
  *    specific prior written permission.
  *
@@ -34,14 +34,19 @@
  * Serially Interfaced, 8-Digit LED Display Drivers
  * Serially Interfaced, 8x8-Dot LED Matrix Drivers
  *
- * Forked form Ruslan V. Uss <unclerus@gmail.com> esp-idf-lib max7219 driver 
- * 
+ * Forked from Ruslan V. Uss <unclerus@gmail.com> esp-idf-lib max7219 driver
+ *
  * Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
  *
  * BSD Licensed as described in the file LICENSE
  */
 #ifndef __MAX7219_H__
 #define __MAX7219_H__
+
+#define MAX7219_VERSION_MAJOR 1
+#define MAX7219_VERSION_MINOR 0
+#define MAX7219_VERSION_PATCH 0
+#define MAX7219_VERSION "1.0.0"
 
 #include <stdint.h>
 #include <stdbool.h>

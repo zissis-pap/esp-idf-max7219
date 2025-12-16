@@ -9,7 +9,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of itscontributors
+ * 3. Neither the name of the copyright holder nor the names of its contributors
  *    may be used to endorse or promote products derived from this software without
  *    specific prior written permission.
  *
@@ -32,8 +32,8 @@
  * Serially Interfaced, 8-Digit LED Display Drivers
  * Serially Interfaced, 8x8-Dot LED Matrix Drivers
  *
- * Forked form Ruslan V. Uss <unclerus@gmail.com> esp-idf-lib max7219 driver 
- * 
+ * Forked from Ruslan V. Uss <unclerus@gmail.com> esp-idf-lib max7219 driver
+ *
  * Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
  *
  * BSD Licensed as described in the file LICENSE
@@ -68,7 +68,7 @@ static inline uint16_t shuffle(uint16_t val)
     return (val >> 8) | (val << 8);
 }
 
-esp_err_t send(max7219_t *dev, uint8_t chip, uint16_t value)
+static esp_err_t send(max7219_t *dev, uint8_t chip, uint16_t value)
 {
     uint16_t buf[MAX7219_MAX_CASCADE_SIZE] = { 0 };
     if (chip == ALL_CHIPS)
@@ -264,9 +264,13 @@ esp_err_t max7219_draw_image_8x8(max7219_t *dev, uint8_t pos, const void *image)
     return ESP_OK;
 }
 
-esp_err_t max7219_process_text(const char * text, uint8_t *byte_array)
+esp_err_t max7219_process_text(const char *text, uint8_t *byte_array)
 {
+    CHECK_ARG(text && byte_array);
+
     uint8_t text_len = strlen(text);
+    if (text_len == 0)
+        return ESP_OK;
 
     for (int bit = 0; bit < MAX7219_MATRIX_WIDTH; bit++) // Iterate through each bit-plane
     {
@@ -324,7 +328,12 @@ esp_err_t max7219_print_static_text(max7219_t *dev, const char *text)
         for (uint8_t row = 0; row < 8; row++) // MAX7219 has 8 rows
         {
             uint8_t data = processed_text[8 * matrix + row];
-            send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((8 - row) << 8) | data);
+            esp_err_t err = send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((8 - row) << 8) | data);
+            if (err != ESP_OK)
+            {
+                free(processed_text);
+                return err;
+            }
         }
     }
 
@@ -362,11 +371,16 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char *text, uint16_t delay_m
     {
         for (int matrix = 0; matrix < display_matrices; matrix++) // Send the processed data to the MAX7219 matrices.
         {
-            for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++) 
+            for (uint8_t row = 0; row < MAX7219_MATRIX_WIDTH; row++)
             {
                 uint16_t index = row + (matrix * MAX7219_MATRIX_WIDTH);
                 uint8_t data = (index < 8 * text_len) ? processed_text[index] : 0; // Bounds-safe access.
-                send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((MAX7219_MATRIX_WIDTH - row) << 8) | data);
+                esp_err_t err = send(dev, MAX7219_CASCADE_SIZE - matrix - 1, ((MAX7219_MATRIX_WIDTH - row) << 8) | data);
+                if (err != ESP_OK)
+                {
+                    free(processed_text);
+                    return err;
+                }
             }
         }
 
@@ -381,8 +395,10 @@ esp_err_t max7219_scroll_text(max7219_t *dev, const char *text, uint16_t delay_m
                 carry = next_carry;
             }
         }
-        if(bit == 0) vTaskDelay(pdMS_TO_TICKS(1500)); // Delay for the next frame
-		else vTaskDelay(pdMS_TO_TICKS(delay_ms)); // Apply scrolling delay.
+        if (bit == 0)
+            vTaskDelay(pdMS_TO_TICKS(1500)); // Delay to show first character
+        else
+            vTaskDelay(pdMS_TO_TICKS(delay_ms)); // Apply scrolling delay
     }
 
     free(processed_text); // Free allocated memory.
