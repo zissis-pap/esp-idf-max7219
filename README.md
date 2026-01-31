@@ -1,13 +1,17 @@
-# esp-idf-max7219
+# 🎮 esp-idf-max7219
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/esp-idf-max7219)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
+[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v4.0+-orange.svg)](https://github.com/espressif/esp-idf)
+[![Platform](https://img.shields.io/badge/platform-ESP32-lightgrey.svg)](https://www.espressif.com/en/products/socs/esp32)
+[![Language](https://img.shields.io/badge/language-C-blue.svg)](https://en.wikipedia.org/wiki/C_(programming_language))
+[![Interface](https://img.shields.io/badge/interface-SPI-red.svg)](https://en.wikipedia.org/wiki/Serial_Peripheral_Interface)
 
-ESP-IDF driver for MAX7219/MAX7221 LED display drivers supporting both 7-segment displays and 8x8 LED dot matrix modules.
+🔌 ESP-IDF driver for MAX7219/MAX7221 LED display drivers supporting both 7-segment displays and 8x8 LED dot matrix modules.
 
-**Current Version: 1.0.0**
+**Current Version: 1.0.0** 🚀
 
-## Features
+## ✨ Features
 
 - Support for MAX7219/MAX7221 LED display drivers
 - 7-segment display mode with BCD decoding
@@ -19,13 +23,13 @@ ESP-IDF driver for MAX7219/MAX7221 LED display drivers supporting both 7-segment
 - SPI communication interface
 - Hardware mirroring support for different display orientations
 
-## Hardware Requirements
+## 🛠️ Hardware Requirements
 
 - ESP32 or any ESP-IDF compatible microcontroller
 - MAX7219 or MAX7221 LED display driver module
 - 8x8 LED dot matrix or 7-segment display
 
-## Installation
+## 📦 Installation
 
 ### As an ESP-IDF Component
 
@@ -40,7 +44,7 @@ git clone https://github.com/yourusername/esp-idf-max7219.git
 #include "max7219.h"
 ```
 
-## Wiring
+## 🔌 Wiring
 
 Connect the MAX7219 module to your ESP32:
 
@@ -52,7 +56,7 @@ Connect the MAX7219 module to your ESP32:
 | CS          | Any GPIO  | Chip Select |
 | CLK         | SCK       | SPI Clock |
 
-## Usage
+## 💻 Usage
 
 ### Initialization
 
@@ -82,7 +86,7 @@ ESP_ERROR_CHECK(max7219_init_desc(&dev, SPI2_HOST, MAX7219_MAX_CLOCK_SPEED_HZ, G
 ESP_ERROR_CHECK(max7219_init(&dev));
 ```
 
-### 8x8 LED Matrix - Static Text
+### 📟 8x8 LED Matrix - Static Text
 
 ```c
 // Display static text (up to 4 characters for 4 modules)
@@ -145,7 +149,7 @@ max7219_free_desc(&dev);
 spi_bus_free(SPI2_HOST);
 ```
 
-## API Reference
+## 📚 API Reference
 
 ### Initialization Functions
 
@@ -213,16 +217,16 @@ printf("Major: %d, Minor: %d, Patch: %d\n",
 - Fixed static text printing for strings shorter than 4 characters
 - Increased space width for better text readability
 
-## Credits
+## 🙏 Credits
 
 Forked from [Ruslan V. Uss](https://github.com/UncleRus)'s esp-idf-lib MAX7219 driver with enhancements for text rendering and scrolling.
 
-## License
+## 📄 License
 
 BSD 3-Clause License - see source files for full license text.
 
 Copyright (c) 2024 Zissis Pap <zissis.papadopoulos@gmail.com>
 
-## Author
+## 👤 Author
 
 Zissis Papadopoulos - zissis.papadopoulos@gmail.com
