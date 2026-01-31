@@ -1,4 +1,4 @@
-# 🎮 esp-idf-max7219
+# esp-idf-max7219
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/esp-idf-max7219)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
@@ -86,7 +86,7 @@ ESP_ERROR_CHECK(max7219_init_desc(&dev, SPI2_HOST, MAX7219_MAX_CLOCK_SPEED_HZ, G
 ESP_ERROR_CHECK(max7219_init(&dev));
 ```
 
-### 📟 8x8 LED Matrix - Static Text
+### 8x8 LED Matrix - Static Text
 
 ```c
 // Display static text (up to 4 characters for 4 modules)
